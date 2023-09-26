@@ -1,31 +1,130 @@
 import { render, screen } from "@testing-library/vue";
 import { RouterLinkStub } from "@vue/test-utils";
-import axios from "axios";
+import { createTestingPinia } from "@pinia/testing";
 
 import JobListings from "@/components/JobResults/JobListings.vue";
-
-vi.mock("axios");
+import { useJobsStore } from "@/stores/jobs";
 
 describe("JobListings", () => {
-  it("fetches jobs", () => {
-    axios.get.mockResolvedValue({ data: [] });
-    render(JobListings);
-    expect(axios.get).toHaveBeenCalledWith("http://localhost:3000/jobs");
+  const createRoute = (queryParams = {}) => ({
+    query: {
+      page: "5",
+      ...queryParams,
+    },
   });
 
-  it("creates a job listing for every job", async () => {
-    axios.get.mockResolvedValue({ data: Array(15).fill({}) });
+  const renderJobListings = ($route) => {
+    const pinia = createTestingPinia();
 
     render(JobListings, {
       global: {
+        plugins: [pinia],
+        mocks: {
+          $route,
+        },
         stubs: {
           RouterLink: RouterLinkStub,
         },
       },
     });
-    expect(axios.get).toHaveBeenCalledWith("http://localhost:3000/jobs");
+  };
+
+  it("fetches jobs", () => {
+    const $route = createRoute();
+
+    renderJobListings($route);
+
+    const jobsStore = useJobsStore();
+    expect(jobsStore.FETCH_JOBS).toHaveBeenCalled();
+  });
+
+  it("displays maximum of 10 jobs", async () => {
+    const queryParams = { page: "1" };
+    const $route = createRoute(queryParams);
+
+    renderJobListings($route);
+    const jobsStore = useJobsStore();
+    jobsStore.jobs = Array(15).fill({});
 
     const jobListings = await screen.findAllByRole("listitem");
-    expect(jobListings).toHaveLength(15);
+    expect(jobListings).toHaveLength(10);
+  });
+
+  describe("when params exclude page number", () => {
+    it("displays page number 1", () => {
+      const queryParams = { page: undefined };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+
+      expect(screen.getByText("Page 1")).toBeInTheDocument();
+    });
+  });
+
+  describe("when query params include page number", () => {
+    it("displays page number", () => {
+      const queryParams = { page: "3" };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+
+      expect(screen.getByText("Page 3")).toBeInTheDocument();
+    });
+  });
+
+  describe("when user in on first page", () => {
+    it("does not show link to previous page", async () => {
+      const queryParams = { page: "1" };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+      const jobsStore = useJobsStore();
+      jobsStore.jobs = Array(15).fill({});
+
+      await screen.findAllByRole("listitem");
+      const previousLink = screen.queryByRole("link", { name: /previous/i });
+      expect(previousLink).not.toBeInTheDocument();
+    });
+
+    it("shows link to next page", async () => {
+      const queryParams = { page: "1" };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+      const jobsStore = useJobsStore();
+      jobsStore.jobs = Array(15).fill({});
+
+      await screen.findAllByRole("listitem");
+      const nextLink = screen.queryByRole("link", { name: /next/i });
+      expect(nextLink).toBeInTheDocument();
+    });
+  });
+
+  describe("when user is on last page", () => {
+    it("does not show link to next page", async () => {
+      const queryParams = { page: "2" };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+      const jobsStore = useJobsStore();
+      jobsStore.jobs = Array(15).fill({});
+
+      await screen.findAllByRole("listitem");
+      const nextLink = screen.queryByRole("link", { name: /next/i });
+      expect(nextLink).not.toBeInTheDocument();
+    });
+
+    it("shoes link to previous page", async () => {
+      const queryParams = { page: "2" };
+      const $route = createRoute(queryParams);
+
+      renderJobListings($route);
+      const jobsStore = useJobsStore();
+      jobsStore.jobs = Array(15).fill({});
+
+      await screen.findAllByRole("listitem");
+      const previousLink = screen.queryByRole("link", { name: /previous/i });
+      expect(previousLink).toBeInTheDocument();
+    });
   });
 });
