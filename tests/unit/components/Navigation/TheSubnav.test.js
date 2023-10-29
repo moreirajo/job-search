@@ -32,7 +32,7 @@ describe("TheSubnav", () => {
 
       const { jobsStore } = renderTheSubnav(routeName);
       const numbersOfJobs = 16;
-      jobsStore.FILTERED_JOBS_BY_ORGANIZATIONS = Array(numbersOfJobs).fill();
+      jobsStore.FILTERED_JOBS = Array(numbersOfJobs).fill();
 
       const jobCount = await screen.findByText(numbersOfJobs);
       expect(jobCount).toBeInTheDocument();
@@ -45,7 +45,7 @@ describe("TheSubnav", () => {
 
       const { jobsStore } = renderTheSubnav(routeName);
       const numbersOfJobs = 16;
-      jobsStore.FILTERED_JOBS_BY_ORGANIZATIONS = Array(numbersOfJobs).fill();
+      jobsStore.FILTERED_JOBS = Array(numbersOfJobs).fill();
 
       const jobCount = screen.queryByText(numbersOfJobs);
       expect(jobCount).not.toBeInTheDocument();
