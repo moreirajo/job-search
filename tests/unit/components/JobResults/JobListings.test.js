@@ -1,50 +1,43 @@
 import { render, screen } from "@testing-library/vue";
 import { RouterLinkStub } from "@vue/test-utils";
 import { createTestingPinia } from "@pinia/testing";
+import { useRoute } from "vue-router";
+vi.mock("vue-router");
 
 import JobListings from "@/components/JobResults/JobListings.vue";
 import { useJobsStore } from "@/stores/jobs";
 
 describe("JobListings", () => {
-  const createRoute = (queryParams = {}) => ({
-    query: {
-      page: "5",
-      ...queryParams,
-    },
-  });
-
-  const renderJobListings = ($route) => {
+  const renderJobListings = () => {
     const pinia = createTestingPinia();
+    const jobsStore = useJobsStore();
+    jobsStore.FILTERED_JOBS = Array(15).fill({});
 
     render(JobListings, {
       global: {
         plugins: [pinia],
-        mocks: {
-          $route,
-        },
         stubs: {
           RouterLink: RouterLinkStub,
         },
       },
     });
+
+    return { jobsStore };
   };
 
   it("fetches jobs", () => {
-    const $route = createRoute();
+    useRoute.mockReturnValue({ query: {} });
 
-    renderJobListings($route);
+    const { jobsStore } = renderJobListings();
 
-    const jobsStore = useJobsStore();
     expect(jobsStore.FETCH_JOBS).toHaveBeenCalled();
   });
 
   it("displays maximum of 10 jobs", async () => {
-    const queryParams = { page: "1" };
-    const $route = createRoute(queryParams);
+    useRoute.mockReturnValue({ query: { page: "1" } });
 
-    renderJobListings($route);
-    const jobsStore = useJobsStore();
-    jobsStore.jobs = Array(15).fill({});
+    const { jobsStore } = renderJobListings();
+    jobsStore.FILTERED_JOBS = Array(15).fill({});
 
     const jobListings = await screen.findAllByRole("listitem");
     expect(jobListings).toHaveLength(10);
@@ -52,10 +45,9 @@ describe("JobListings", () => {
 
   describe("when params exclude page number", () => {
     it("displays page number 1", () => {
-      const queryParams = { page: undefined };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: undefined } });
 
-      renderJobListings($route);
+      renderJobListings();
 
       expect(screen.getByText("Page 1")).toBeInTheDocument();
     });
@@ -63,10 +55,9 @@ describe("JobListings", () => {
 
   describe("when query params include page number", () => {
     it("displays page number", () => {
-      const queryParams = { page: "3" };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: "3" } });
 
-      renderJobListings($route);
+      renderJobListings();
 
       expect(screen.getByText("Page 3")).toBeInTheDocument();
     });
@@ -74,12 +65,10 @@ describe("JobListings", () => {
 
   describe("when user in on first page", () => {
     it("does not show link to previous page", async () => {
-      const queryParams = { page: "1" };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: "1" } });
 
-      renderJobListings($route);
-      const jobsStore = useJobsStore();
-      jobsStore.jobs = Array(15).fill({});
+      const { jobsStore } = renderJobListings();
+      jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
       const previousLink = screen.queryByRole("link", { name: /previous/i });
@@ -87,12 +76,10 @@ describe("JobListings", () => {
     });
 
     it("shows link to next page", async () => {
-      const queryParams = { page: "1" };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: "1" } });
 
-      renderJobListings($route);
-      const jobsStore = useJobsStore();
-      jobsStore.jobs = Array(15).fill({});
+      const { jobsStore } = renderJobListings();
+      jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
       const nextLink = screen.queryByRole("link", { name: /next/i });
@@ -102,12 +89,10 @@ describe("JobListings", () => {
 
   describe("when user is on last page", () => {
     it("does not show link to next page", async () => {
-      const queryParams = { page: "2" };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: "2" } });
 
-      renderJobListings($route);
-      const jobsStore = useJobsStore();
-      jobsStore.jobs = Array(15).fill({});
+      const { jobsStore } = renderJobListings();
+      jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
       const nextLink = screen.queryByRole("link", { name: /next/i });
@@ -115,12 +100,10 @@ describe("JobListings", () => {
     });
 
     it("shoes link to previous page", async () => {
-      const queryParams = { page: "2" };
-      const $route = createRoute(queryParams);
+      useRoute.mockReturnValue({ query: { page: "2" } });
 
-      renderJobListings($route);
-      const jobsStore = useJobsStore();
-      jobsStore.jobs = Array(15).fill({});
+      const { jobsStore } = renderJobListings();
+      jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
       const previousLink = screen.queryByRole("link", { name: /previous/i });
