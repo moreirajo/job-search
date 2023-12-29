@@ -1,3 +1,4 @@
+import type { Mock } from "vitest";
 import { render, screen } from "@testing-library/vue";
 import { RouterLinkStub } from "@vue/test-utils";
 import { createTestingPinia } from "@pinia/testing";
@@ -5,13 +6,18 @@ import { useRoute } from "vue-router";
 vi.mock("vue-router");
 
 import JobListings from "@/components/JobResults/JobListings.vue";
+import { useDegreesStore } from "@/stores/degrees";
 import { useJobsStore } from "@/stores/jobs";
+
+const useRouteMock = useRoute as Mock;
 
 describe("JobListings", () => {
   const renderJobListings = () => {
     const pinia = createTestingPinia();
     const jobsStore = useJobsStore();
+    // @ts-expect-error
     jobsStore.FILTERED_JOBS = Array(15).fill({});
+    const degreesStore = useDegreesStore();
 
     render(JobListings, {
       global: {
@@ -22,21 +28,30 @@ describe("JobListings", () => {
       },
     });
 
-    return { jobsStore };
+    return { degreesStore, jobsStore };
   };
 
   it("fetches jobs", () => {
-    useRoute.mockReturnValue({ query: {} });
+    useRouteMock.mockReturnValue({ query: {} });
 
     const { jobsStore } = renderJobListings();
 
     expect(jobsStore.FETCH_JOBS).toHaveBeenCalled();
   });
 
+  it("fetches degrees", () => {
+    useRouteMock.mockReturnValue({ query: {} });
+
+    const { degreesStore } = renderJobListings();
+
+    expect(degreesStore.FETCH_DEGREES).toHaveBeenCalled();
+  });
+
   it("displays maximum of 10 jobs", async () => {
-    useRoute.mockReturnValue({ query: { page: "1" } });
+    useRouteMock.mockReturnValue({ query: { page: "1" } });
 
     const { jobsStore } = renderJobListings();
+    // @ts-expect-error
     jobsStore.FILTERED_JOBS = Array(15).fill({});
 
     const jobListings = await screen.findAllByRole("listitem");
@@ -45,7 +60,7 @@ describe("JobListings", () => {
 
   describe("when params exclude page number", () => {
     it("displays page number 1", () => {
-      useRoute.mockReturnValue({ query: { page: undefined } });
+      useRouteMock.mockReturnValue({ query: { page: undefined } });
 
       renderJobListings();
 
@@ -55,7 +70,7 @@ describe("JobListings", () => {
 
   describe("when query params include page number", () => {
     it("displays page number", () => {
-      useRoute.mockReturnValue({ query: { page: "3" } });
+      useRouteMock.mockReturnValue({ query: { page: "3" } });
 
       renderJobListings();
 
@@ -65,9 +80,10 @@ describe("JobListings", () => {
 
   describe("when user in on first page", () => {
     it("does not show link to previous page", async () => {
-      useRoute.mockReturnValue({ query: { page: "1" } });
+      useRouteMock.mockReturnValue({ query: { page: "1" } });
 
       const { jobsStore } = renderJobListings();
+      // @ts-expect-error
       jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
@@ -76,9 +92,10 @@ describe("JobListings", () => {
     });
 
     it("shows link to next page", async () => {
-      useRoute.mockReturnValue({ query: { page: "1" } });
+      useRouteMock.mockReturnValue({ query: { page: "1" } });
 
       const { jobsStore } = renderJobListings();
+      // @ts-expect-error
       jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
@@ -89,9 +106,10 @@ describe("JobListings", () => {
 
   describe("when user is on last page", () => {
     it("does not show link to next page", async () => {
-      useRoute.mockReturnValue({ query: { page: "2" } });
+      useRouteMock.mockReturnValue({ query: { page: "2" } });
 
       const { jobsStore } = renderJobListings();
+      // @ts-expect-error
       jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");
@@ -100,9 +118,10 @@ describe("JobListings", () => {
     });
 
     it("shoes link to previous page", async () => {
-      useRoute.mockReturnValue({ query: { page: "2" } });
+      useRouteMock.mockReturnValue({ query: { page: "2" } });
 
       const { jobsStore } = renderJobListings();
+      // @ts-expect-error
       jobsStore.FILTERED_JOBS = Array(15).fill({});
 
       await screen.findAllByRole("listitem");

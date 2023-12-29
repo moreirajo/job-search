@@ -2,9 +2,9 @@ import type { Mock } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import axios from "axios";
 
-import type { Job } from "@/api/types";
-import { useJobsStore } from "@/stores/jobs";
+import { INCLUDE_JOB_BY_DEGREE, useJobsStore } from "@/stores/jobs";
 import { useUserStore } from "@/stores/user";
+import { createJob } from "tests/utils/createJob";
 
 vi.mock("axios");
 const axiosGetMock = axios.get as Mock;
@@ -36,20 +36,6 @@ describe("actions", () => {
 });
 
 describe("getters", () => {
-  const createJob = (job: Partial<Job> = {}): Job => ({
-    id: 1,
-    title: "Angular Developer",
-    organization: "Vue and Me",
-    degree: "Master's",
-    jobType: "Intern",
-    locations: ["Lisbon"],
-    minimumQualifications: ["Mesh granular deliverables"],
-    preferredQualifications: ["Mesh wireless metrics"],
-    description: ["Away someone forget effect wait land."],
-    dateAdded: "2021-07-04",
-    ...job,
-  });
-
   beforeEach(() => {
     setActivePinia(createPinia());
   });
@@ -133,6 +119,69 @@ describe("getters", () => {
       const result = store.INCLUDE_JOB_BY_JOB_TYPE(job);
 
       expect(result).toBe(true);
+    });
+  });
+
+  describe("INCLUDE_JOB_BY_DEGREE", () => {
+    describe("when the user has not selected any degree", () => {
+      it("includes job", () => {
+        const userStore = useUserStore();
+        userStore.selectedDegrees = [];
+        const store = useJobsStore();
+        const job = createJob();
+
+        const result = store.INCLUDE_JOB_BY_DEGREE(job);
+
+        expect(result).toBe(true);
+      });
+    });
+
+    it("identifies if job is associated with given given degrees", () => {
+      const userStore = useUserStore();
+      userStore.selectedDegrees = ["Master's"];
+      const store = useJobsStore();
+      const job = createJob({ degree: "Master's" });
+
+      const result = store.INCLUDE_JOB_BY_DEGREE(job);
+
+      expect(result).toBe(true);
+    });
+  });
+
+  it("INCLUDE_JOB_BY_SKILL", () => {
+    it("identifies if job matches user's skill", () => {
+      const userStore = useUserStore();
+      userStore.skillsSearchTerm = "Vue";
+      const store = useJobsStore();
+      const job = createJob({ title: "Vue Developer" });
+
+      const result = store.INCLUDE_JOB_BY_SKILL(job);
+
+      expect(result).toBe(true);
+    });
+
+    it("handles inconsistent character casing", () => {
+      const userStore = useUserStore();
+      userStore.skillsSearchTerm = "vuE";
+      const store = useJobsStore();
+      const job = createJob({ title: "Vue Developer" });
+
+      const result = store.INCLUDE_JOB_BY_SKILL(job);
+
+      expect(result).toBe(true);
+    });
+
+    describe("when the user has not entered any skill", () => {
+      it("includes job", () => {
+        const userStore = useUserStore();
+        userStore.skillsSearchTerm = "";
+        const store = useJobsStore();
+        const job = createJob({ title: "Vue Developer" });
+
+        const result = store.INCLUDE_JOB_BY_SKILL(job);
+
+        expect(result).toBe(true);
+      });
     });
   });
 });
